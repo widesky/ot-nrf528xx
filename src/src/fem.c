@@ -62,6 +62,22 @@
 #define PLATFORM_FEM_DEFAULT_PDN_GPIOTE_CHANNEL          5   /**< Default PDN GPIOTE channel for FEM control. */
 
 /**
+ * @brief Configuration parameters for the Front End Module
+ * Skyworks SKY66112 / Fanstel USB840X
+ */
+#define PLATFORM_FEM_SKY66112_PA_PIN                     17  /**< SKY66112 Power Amplifier pin. */
+#define PLATFORM_FEM_SKY66112_LNA_PIN                    19  /**< SKY66112 Low Noise Amplifier pin. */
+#define PLATFORM_FEM_SKY66112_PDN_PIN                    6   /**< SKY66112 Power Down pin. */
+#define PLATFORM_FEM_SKY66112_SET_PPI_CHANNEL            15  /**< SKY66112 PPI channel for pin setting. */
+#define PLATFORM_FEM_SKY66112_CLR_PPI_CHANNEL            16  /**< SKY66112 PPI channel for pin clearing. */
+#define PLATFORM_FEM_SKY66112_PDN_PPI_CHANNEL            14  /**< SKY66112 PPI channel for Power Down control. */
+#define PLATFORM_FEM_SKY66112_TIMER_MATCH_PPI_GROUP      4   /**< SKY66112 PPI channel group used to disable timer match PPI. */
+#define PLATFORM_FEM_SKY66112_RADIO_DISABLED_PPI_GROUP   5   /**< SKY66112 PPI channel group used to disable radio disabled PPI. */
+#define PLATFORM_FEM_SKY66112_PA_GPIOTE_CHANNEL          6   /**< SKY66112 PA GPIOTE channel for FEM control. */
+#define PLATFORM_FEM_SKY66112_LNA_GPIOTE_CHANNEL         7   /**< SKY66112 LNA GPIOTE channel for FEM control. */
+#define PLATFORM_FEM_SKY66112_PDN_GPIOTE_CHANNEL         5   /**< SKY66112 PDN GPIOTE channel for FEM control. */
+
+/**
  * @brief Configuration parameters for the Front End Module timings and gain.
  */
 #define PLATFORM_FEM_PA_TIME_IN_ADVANCE_US  13 /**< Default time in microseconds when PA GPIO is activated before the radio is ready for transmission. */
@@ -108,6 +124,43 @@
         .mPpiChIdClr = PLATFORM_FEM_DEFAULT_CLR_PPI_CHANNEL,            \
         .mPpiChIdSet = PLATFORM_FEM_DEFAULT_SET_PPI_CHANNEL,            \
         .mPpiChIdPdn = PLATFORM_FEM_DEFAULT_PDN_PPI_CHANNEL,            \
+    })
+
+#define PLATFORM_FEM_SKY66112_CONFIG                                    \
+    ((PlatformFemConfigParams){                                         \
+        .mFemPhyCfg =                                                   \
+            {                                                           \
+                .mPaTimeGapUs  = PLATFORM_FEM_PA_TIME_IN_ADVANCE_US,    \
+                .mLnaTimeGapUs = PLATFORM_FEM_LNA_TIME_IN_ADVANCE_US,   \
+                .mPdnSettleUs  = PLATFORM_FEM_PDN_SETTLE_US,            \
+                .mTrxHoldUs    = PLATFORM_FEM_TRX_HOLD_US,              \
+                .mPaGainDb     = PLATFORM_FEM_PA_GAIN_DB,               \
+                .mLnaGainDb    = PLATFORM_FEM_LNA_GAIN_DB,              \
+            },                                                          \
+        .mPaCfg =                                                       \
+            {                                                           \
+                .mEnable     = 1,                                       \
+                .mActiveHigh = 1,                                       \
+                .mGpioPin    = PLATFORM_FEM_SKY66112_PA_PIN,            \
+                .mGpioteChId = PLATFORM_FEM_SKY66112_PA_GPIOTE_CHANNEL, \
+            },                                                          \
+        .mLnaCfg =                                                      \
+            {                                                           \
+                .mEnable     = 1,                                       \
+                .mActiveHigh = 1,                                       \
+                .mGpioPin    = PLATFORM_FEM_SKY66112_LNA_PIN,           \
+                .mGpioteChId = PLATFORM_FEM_SKY66112_LNA_GPIOTE_CHANNEL,\
+            },                                                          \
+        .mPdnCfg =                                                      \
+            {                                                           \
+                .mEnable     = 1,                                       \
+                .mActiveHigh = 1,                                       \
+                .mGpioPin    = PLATFORM_FEM_SKY66112_PDN_PIN,           \
+                .mGpioteChId = PLATFORM_FEM_SKY66112_PDN_GPIOTE_CHANNEL,\
+            },                                                          \
+        .mPpiChIdClr = PLATFORM_FEM_SKY66112_CLR_PPI_CHANNEL,           \
+        .mPpiChIdSet = PLATFORM_FEM_SKY66112_SET_PPI_CHANNEL,           \
+        .mPpiChIdPdn = PLATFORM_FEM_SKY66112_PDN_PPI_CHANNEL,           \
     })
 
 /**
@@ -193,6 +246,10 @@ void nrf5FemInit(void)
 #if PLATFORM_FEM_ENABLE_DEFAULT_CONFIG
     PlatformFemSetConfigParams(&PLATFORM_FEM_DEFAULT_CONFIG);
 #endif
+#if OPENTHREAD_CONFIG_NRF5_WITH_SKY66112
+    nrf5RadioInitChl();
+    PlatformFemSetConfigParams(&PLATFORM_FEM_SKY66112_CONFIG);
+#endif
 }
 
 void nrf5FemDeinit(void)
@@ -206,3 +263,29 @@ void nrf5FemEnable(void)
 void nrf5FemDisable(void)
 {
 }
+
+#if OPENTHREAD_CONFIG_NRF5_WITH_SKY66112
+bool nrf5RadioGetChl(void)
+{
+    return (nrf_gpio_pin_out_read(OPENTHREAD_CONFIG_NRF5_SKY66112_CHL_PIN) != 0);
+}
+
+void nrf5RadioSetChl(bool aState)
+{
+    if (aState)
+    {
+        nrf_gpio_pin_set(OPENTHREAD_CONFIG_NRF5_SKY66112_CHL_PIN);
+    }
+    else
+    {
+        nrf_gpio_pin_clear(OPENTHREAD_CONFIG_NRF5_SKY66112_CHL_PIN);
+    }
+}
+
+/* Configure and initialise the CHL pin on the SKY66112 PA/LNA */
+static void nrf5RadioInitChl(void)
+{
+    nrf_gpio_cfg_output(OPENTHREAD_CONFIG_NRF5_SKY66112_CHL_PIN);
+    nrf5RadioSetChl(OPENTHREAD_CONFIG_NRF5_SKY66112_CHL_DEFAULT_STATE);
+}
+#endif // OPENTHREAD_CONFIG_NRF5_WITH_SKY66112
