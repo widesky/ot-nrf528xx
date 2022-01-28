@@ -79,6 +79,12 @@ endif()
 set(OT_UART_BAUDRATE 115200 CACHE STRING "UART Baud rate. It must be a pre-defined
 value in src/nrf52840/transport-config.h")
 add_definitions(-DUART_BAUDRATE=NRF_UARTE_BAUDRATE_${OT_UART_BAUDRATE})
+if(UART_RX_PIN)
+    add_definitions(-DUART_RX_PIN=${UART_RX_PIN})
+endif()
+if(UART_TX_PIN)
+    add_definitions(-DUART_TX_PIN=${UART_TX_PIN})
+endif()
 
 add_library(openthread-nrf52840
     ${NRF_COMM_SOURCES}
