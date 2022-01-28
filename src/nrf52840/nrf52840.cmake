@@ -26,6 +26,14 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
+if(BOARD STREQUAL "BT840X")
+	# Fanstel BT840X/USB840X, first move the UART pins out of the way
+	# then enable support for the Skyworks SKY66112.
+	set(UART_RX_PIN 22)
+	set(UART_TX_PIN 24)
+	set(OPENTHREAD_CONFIG_NRF5_WITH_SKY66112 1)
+endif()
+
 option(OT_BOOTLOADER "OT nrf bootloader type")
 if(OT_BOOTLOADER STREQUAL "USB")
     list(APPEND OT_PLATFORM_DEFINES "APP_USBD_NRF_DFU_TRIGGER_ENABLED=1")
