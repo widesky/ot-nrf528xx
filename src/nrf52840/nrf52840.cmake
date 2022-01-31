@@ -31,7 +31,13 @@ if(BOARD STREQUAL "BT840X")
 	# then enable support for the Skyworks SKY66112.
 	set(UART_PIN_RX 22)
 	set(UART_PIN_TX 24)
-	set(OPENTHREAD_CONFIG_NRF5_WITH_SKY66112 1)
+	# The control pins for the SKY66112 are as follows
+	add_definitions(-DOPENTHREAD_CONFIG_NRF5_SKY66112_CRX_PIN=19)
+	add_definitions(-DOPENTHREAD_CONFIG_NRF5_SKY66112_CTX_PIN=17)
+	add_definitions(-DOPENTHREAD_CONFIG_NRF5_SKY66112_CPS_PIN=6)
+	add_definitions(-DOPENTHREAD_CONFIG_NRF5_SKY66112_CHL_PIN=8)
+	add_definitions(-DOPENTHREAD_CONFIG_NRF5_SKY66112_CHL_DEFAULT_STATE=true)
+	add_definitions(-DOPENTHREAD_CONFIG_NRF5_WITH_SKY66112=1)
 endif()
 
 option(OT_BOOTLOADER "OT nrf bootloader type")
