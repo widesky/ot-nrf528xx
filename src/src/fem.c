@@ -43,6 +43,7 @@
 
 #define ENABLE_FEM 1
 #include <nrf_802154.h>
+#include <nrf_gpio.h>
 
 // clang-format off
 
@@ -65,9 +66,9 @@
  * @brief Configuration parameters for the Front End Module
  * Skyworks SKY66112 / Fanstel USB840X
  */
-#define PLATFORM_FEM_SKY66112_PA_PIN                     17  /**< SKY66112 Power Amplifier pin. */
-#define PLATFORM_FEM_SKY66112_LNA_PIN                    19  /**< SKY66112 Low Noise Amplifier pin. */
-#define PLATFORM_FEM_SKY66112_PDN_PIN                    6   /**< SKY66112 Power Down pin. */
+#define PLATFORM_FEM_SKY66112_PA_PIN                     OPENTHREAD_CONFIG_NRF5_SKY66112_CTX_PIN  /**< SKY66112 Power Amplifier pin. */
+#define PLATFORM_FEM_SKY66112_LNA_PIN                    OPENTHREAD_CONFIG_NRF5_SKY66112_CRX_PIN  /**< SKY66112 Low Noise Amplifier pin. */
+#define PLATFORM_FEM_SKY66112_PDN_PIN                    OPENTHREAD_CONFIG_NRF5_SKY66112_CPS_PIN  /**< SKY66112 Power Down pin. */
 #define PLATFORM_FEM_SKY66112_SET_PPI_CHANNEL            15  /**< SKY66112 PPI channel for pin setting. */
 #define PLATFORM_FEM_SKY66112_CLR_PPI_CHANNEL            16  /**< SKY66112 PPI channel for pin clearing. */
 #define PLATFORM_FEM_SKY66112_PDN_PPI_CHANNEL            14  /**< SKY66112 PPI channel for Power Down control. */
@@ -86,6 +87,9 @@
 #define PLATFORM_FEM_TRX_HOLD_US            5  /**< Default the time between deasserting the RX_EN/TX_EN and deactivating PDN. */
 #define PLATFORM_FEM_PA_GAIN_DB             0  /**< Default PA gain. Ignored if the amplifier is not supporting this feature. */
 #define PLATFORM_FEM_LNA_GAIN_DB            0  /**< Default LNA gain. Ignored if the amplifier is not supporting this feature. */
+
+#define SKY66112_FEM_PA_GAIN_DB             20 /**< Default PA gain. Ignored if the amplifier is not supporting this feature. */
+#define SKY66112_FEM_LNA_GAIN_DB            11 /**< Default LNA gain. Ignored if the amplifier is not supporting this feature. */
 
 // clang-format on
 
@@ -134,8 +138,8 @@
                 .mLnaTimeGapUs = PLATFORM_FEM_LNA_TIME_IN_ADVANCE_US,   \
                 .mPdnSettleUs  = PLATFORM_FEM_PDN_SETTLE_US,            \
                 .mTrxHoldUs    = PLATFORM_FEM_TRX_HOLD_US,              \
-                .mPaGainDb     = PLATFORM_FEM_PA_GAIN_DB,               \
-                .mLnaGainDb    = PLATFORM_FEM_LNA_GAIN_DB,              \
+                .mPaGainDb     = SKY66112_FEM_PA_GAIN_DB,               \
+                .mLnaGainDb    = SKY66112_FEM_LNA_GAIN_DB,              \
             },                                                          \
         .mPaCfg =                                                       \
             {                                                           \
@@ -241,29 +245,6 @@ void PlatformFemSetConfigParams(const PlatformFemConfigParams *aConfig)
     nrf_fem_interface_configuration_set(&cfg);
 }
 
-void nrf5FemInit(void)
-{
-#if PLATFORM_FEM_ENABLE_DEFAULT_CONFIG
-    PlatformFemSetConfigParams(&PLATFORM_FEM_DEFAULT_CONFIG);
-#endif
-#if OPENTHREAD_CONFIG_NRF5_WITH_SKY66112
-    nrf5RadioInitChl();
-    PlatformFemSetConfigParams(&PLATFORM_FEM_SKY66112_CONFIG);
-#endif
-}
-
-void nrf5FemDeinit(void)
-{
-}
-
-void nrf5FemEnable(void)
-{
-}
-
-void nrf5FemDisable(void)
-{
-}
-
 #if OPENTHREAD_CONFIG_NRF5_WITH_SKY66112
 bool nrf5RadioGetChl(void)
 {
@@ -289,3 +270,26 @@ static void nrf5RadioInitChl(void)
     nrf5RadioSetChl(OPENTHREAD_CONFIG_NRF5_SKY66112_CHL_DEFAULT_STATE);
 }
 #endif // OPENTHREAD_CONFIG_NRF5_WITH_SKY66112
+
+void nrf5FemInit(void)
+{
+#if PLATFORM_FEM_ENABLE_DEFAULT_CONFIG
+    PlatformFemSetConfigParams(&PLATFORM_FEM_DEFAULT_CONFIG);
+#endif
+#if OPENTHREAD_CONFIG_NRF5_WITH_SKY66112
+    nrf5RadioInitChl();
+    PlatformFemSetConfigParams(&PLATFORM_FEM_SKY66112_CONFIG);
+#endif
+}
+
+void nrf5FemDeinit(void)
+{
+}
+
+void nrf5FemEnable(void)
+{
+}
+
+void nrf5FemDisable(void)
+{
+}
