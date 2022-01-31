@@ -88,8 +88,14 @@
 #define PLATFORM_FEM_PA_GAIN_DB             0  /**< Default PA gain. Ignored if the amplifier is not supporting this feature. */
 #define PLATFORM_FEM_LNA_GAIN_DB            0  /**< Default LNA gain. Ignored if the amplifier is not supporting this feature. */
 
-#define SKY66112_FEM_PA_GAIN_DB             20 /**< Default PA gain. Ignored if the amplifier is not supporting this feature. */
-#define SKY66112_FEM_LNA_GAIN_DB            11 /**< Default LNA gain. Ignored if the amplifier is not supporting this feature. */
+#define SKY66112_FEM_PA_GAIN_DB             20 /**< SKY66112 PA gain. */
+#define SKY66112_FEM_LNA_GAIN_DB            11 /**< SKY66112 LNA gain. */
+
+/* Times are ~800ns… close enough to 1µs */
+#define SKY66112_FEM_PA_TIME_IN_ADVANCE_US  1 /**< SKY66112 time in microseconds when PA GPIO is activated before the radio is ready for transmission. */
+#define SKY66112_FEM_LNA_TIME_IN_ADVANCE_US 1 /**< SKY66112 time in microseconds when LNA GPIO is activated before the radio is ready for reception. */
+#define SKY66112_FEM_PDN_SETTLE_US          1 /**< SKY66112 the time between activating the PDN and asserting the RX_EN/TX_EN. */
+#define SKY66112_FEM_TRX_HOLD_US            1 /**< SKY66112 the time between deasserting the RX_EN/TX_EN and deactivating PDN. */
 
 // clang-format on
 
@@ -134,10 +140,10 @@
     ((PlatformFemConfigParams){                                         \
         .mFemPhyCfg =                                                   \
             {                                                           \
-                .mPaTimeGapUs  = PLATFORM_FEM_PA_TIME_IN_ADVANCE_US,    \
-                .mLnaTimeGapUs = PLATFORM_FEM_LNA_TIME_IN_ADVANCE_US,   \
-                .mPdnSettleUs  = PLATFORM_FEM_PDN_SETTLE_US,            \
-                .mTrxHoldUs    = PLATFORM_FEM_TRX_HOLD_US,              \
+                .mPaTimeGapUs  = SKY66112_FEM_PA_TIME_IN_ADVANCE_US,    \
+                .mLnaTimeGapUs = SKY66112_FEM_LNA_TIME_IN_ADVANCE_US,   \
+                .mPdnSettleUs  = SKY66112_FEM_PDN_SETTLE_US,            \
+                .mTrxHoldUs    = SKY66112_FEM_TRX_HOLD_US,              \
                 .mPaGainDb     = SKY66112_FEM_PA_GAIN_DB,               \
                 .mLnaGainDb    = SKY66112_FEM_LNA_GAIN_DB,              \
             },                                                          \
