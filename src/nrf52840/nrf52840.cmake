@@ -29,8 +29,8 @@
 if(BOARD STREQUAL "BT840X")
 	# Fanstel BT840X/USB840X, first move the UART pins out of the way
 	# then enable support for the Skyworks SKY66112.
-	set(UART_RX_PIN 22)
-	set(UART_TX_PIN 24)
+	set(UART_PIN_RX 22)
+	set(UART_PIN_TX 24)
 	set(OPENTHREAD_CONFIG_NRF5_WITH_SKY66112 1)
 endif()
 
@@ -87,11 +87,11 @@ endif()
 set(OT_UART_BAUDRATE 115200 CACHE STRING "UART Baud rate. It must be a pre-defined
 value in src/nrf52840/transport-config.h")
 add_definitions(-DUART_BAUDRATE=NRF_UARTE_BAUDRATE_${OT_UART_BAUDRATE})
-if(UART_RX_PIN)
-    add_definitions(-DUART_RX_PIN=${UART_RX_PIN})
+if(UART_PIN_RX)
+    add_definitions(-DUART_PIN_RX=${UART_PIN_RX})
 endif()
-if(UART_TX_PIN)
-    add_definitions(-DUART_TX_PIN=${UART_TX_PIN})
+if(UART_PIN_TX)
+    add_definitions(-DUART_PIN_TX=${UART_PIN_TX})
 endif()
 
 add_library(openthread-nrf52840
