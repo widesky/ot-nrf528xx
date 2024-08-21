@@ -41,6 +41,10 @@ if(BOARD STREQUAL "BT840X")
 
     # Enable support for bootloader triggering
     list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_CONFIG_PLATFORM_BOOTLOADER_MODE_ENABLE=1")
+
+    # Enable support for using the LEDs to indicate traffic in and out
+    list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_CONFIG_NRF5_RX_LED=NRF_GPIO_PIN_MAP(0,11)")
+    list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_CONFIG_NRF5_TX_LED=NRF_GPIO_PIN_MAP(0,14)")
 endif()
 
 option(OT_BOOTLOADER "OT nrf bootloader type")
