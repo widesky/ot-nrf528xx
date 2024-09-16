@@ -61,6 +61,10 @@
 #include <nrf_802154.h>
 #include <nrf_802154_pib.h>
 
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED) || defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+#include <nrf_gpio.h>
+#endif
+
 #include <openthread-core-config.h>
 #include <openthread/config.h>
 #include <openthread/random_noncrypto.h>
@@ -147,6 +151,53 @@ static otMacKeyMaterial sNextKey;
 static bool             sAckedWithSecEnhAck;
 static uint32_t         sAckFrameCounter;
 static uint8_t          sAckKeyId;
+#endif
+
+#define NRF5_LED_TICKS 50
+
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED) || defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+typedef struct SingleLedState
+{
+    uint8_t mEnabled;
+    uint8_t mDelay;
+} SingleLedState;
+
+static struct RadioLedsState
+{
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED)
+    SingleLedState mRx;
+#endif
+#if defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+    SingleLedState mTx;
+#endif
+} sLeds;
+#endif
+
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED) || defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+static void ledOn(SingleLedState *const aState)
+{
+    aState->mDelay = NRF5_LED_TICKS;
+}
+
+static void ledUpdate(SingleLedState *const aState, uint32_t aPin)
+{
+    if (aState->mEnabled)
+    {
+        aState->mDelay--;
+        if (aState->mDelay == 0)
+        {
+            // LED is now off
+            aState->mEnabled = 0;
+            nrf_gpio_pin_set(aPin);
+        }
+    }
+    else if (aState->mDelay > 0)
+    {
+        // LED is now on
+        aState->mEnabled = 1;
+        nrf_gpio_pin_clear(aPin);
+    }
+}
 #endif
 
 static int8_t GetTransmitPowerForChannel(uint8_t aChannel)
@@ -363,6 +414,15 @@ void nrf5RadioInit(void)
     otLinkMetricsInit(NRF528XX_RECEIVE_SENSITIVITY);
 #endif
     nrf_802154_init();
+
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED)
+    nrf_gpio_pin_dir_set(OPENTHREAD_CONFIG_NRF5_RX_LED, NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_set(OPENTHREAD_CONFIG_NRF5_RX_LED);
+#endif
+#if defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+    nrf_gpio_pin_dir_set(OPENTHREAD_CONFIG_NRF5_TX_LED, NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_set(OPENTHREAD_CONFIG_NRF5_TX_LED);
+#endif
 }
 
 void nrf5RadioDeinit(void)
@@ -564,6 +624,13 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
     {
         setPendingEvent(kPendingEventChannelAccessFailure);
     }
+
+#if defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+    if (error == OT_ERROR_NONE)
+    {
+        ledOn(&sLeds.mTx);
+    }
+#endif
 
     return error;
 }
@@ -859,6 +926,10 @@ void nrf5RadioProcess(otInstance *aInstance)
     {
         if (sReceivedFrames[i].mPsdu != NULL)
         {
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED)
+            ledOn(&sLeds.mRx);
+#endif
+
 #if OPENTHREAD_CONFIG_DIAG_ENABLE
 
             if (otPlatDiagModeGet())
@@ -990,6 +1061,13 @@ void nrf5RadioProcess(otInstance *aInstance)
     {
         otSysEventSignalPending();
     }
+
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED)
+    ledUpdate(&sLeds.mRx, OPENTHREAD_CONFIG_NRF5_RX_LED);
+#endif
+#if defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+    ledUpdate(&sLeds.mTx, OPENTHREAD_CONFIG_NRF5_TX_LED);
+#endif
 }
 
 void nrf_802154_received_timestamp_raw(uint8_t *p_data, int8_t power, uint8_t lqi, uint32_t time)
