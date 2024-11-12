@@ -214,6 +214,14 @@ static int8_t GetTransmitPowerForChannel(uint8_t aChannel)
         power = channelMaxPower;
     }
 
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT
+    // Clamp transmit power applied to FEM
+    if (power > OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT)
+    {
+        power = OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT;
+    }
+#endif
+
     return power;
 }
 
@@ -815,6 +823,12 @@ otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)
     else
     {
         *aPower = nrf_802154_tx_power_get();
+
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN
+        // Add FEM gain
+        *aPower += OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN;
+#endif
+
     }
 
     return error;
@@ -825,6 +839,11 @@ otError otPlatRadioSetTransmitPower(otInstance *aInstance, int8_t aPower)
     OT_UNUSED_VARIABLE(aInstance);
     uint8_t channel = nrf_802154_channel_get();
     otError error   = OT_ERROR_NONE;
+
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN
+    // Subtract FEM gain
+    aPower -= OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN;
+#endif
 
     otEXPECT_ACTION(aPower != OT_RADIO_POWER_INVALID, error = OT_ERROR_INVALID_ARGS);
     sDefaultTxPower = aPower;

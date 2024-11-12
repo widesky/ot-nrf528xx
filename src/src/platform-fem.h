@@ -77,6 +77,17 @@ bool nrf5RadioGetChl(void);
  * @param	aState	State of the CHL pin.
  */
 void nrf5RadioSetChl(bool aState);
+
+/**
+ * Define the gain of the front-end module used in dB.
+ */
+#define OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN	(16)
+
+/**
+ * Define the maximum FEM input power in dBm.
+ */
+#define OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT	(5)
+
 #endif // OPENTHREAD_CONFIG_NRF5_WITH_SKY66112
 
 #endif // PLATFORM_FEM_H_
