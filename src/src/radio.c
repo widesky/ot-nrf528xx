@@ -251,7 +251,7 @@ static void dataInit(void)
 {
     sDisabled = true;
 
-    sDefaultTxPower      = OT_RADIO_POWER_INVALID;
+    sDefaultTxPower      = OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER;
     sTransmitFrame.mPsdu = sTransmitPsdu + 1;
 #if OPENTHREAD_CONFIG_MAC_HEADER_IE_SUPPORT
     sTransmitFrame.mInfo.mTxInfo.mIeInfo = &sTransmitIeInfo;
