@@ -98,6 +98,28 @@ enum
 
 // clang-format on
 
+/**
+ * @def OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER
+ *
+ * The default IEEE 802.15.4 maximum transmit power (dBm)
+ * The bare nRF52840 can do 8dBm.  FEM may increase this or
+ * set max input TX power limits.
+ */
+#ifndef OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT
+#define NRF528XX_MAX_BARE_TX_POWER OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT
+#else
+#define NRF528XX_MAX_BARE_TX_POWER (8)
+#endif
+
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN
+#define OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER \
+    (NRF528XX_MAX_BARE_TX_POWER + OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN)
+#else
+#define OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER NRF528XX_MAX_BARE_TX_POWER
+#endif
+#endif
+
 static bool sDisabled;
 
 static otError      sReceiveError = OT_ERROR_NONE;
