@@ -164,7 +164,7 @@
         .mPdnCfg =                                                      \
             {                                                           \
                 .mEnable     = 1,                                       \
-                .mActiveHigh = 1,                                       \
+                .mActiveHigh = 0,                                       \
                 .mGpioPin    = PLATFORM_FEM_SKY66112_PDN_PIN,           \
                 .mGpioteChId = PLATFORM_FEM_SKY66112_PDN_GPIOTE_CHANNEL,\
             },                                                          \
