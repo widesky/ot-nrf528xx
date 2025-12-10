@@ -61,6 +61,10 @@
 #include <nrf_802154.h>
 #include <nrf_802154_pib.h>
 
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED) || defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+#include <nrf_gpio.h>
+#endif
+
 #include <openthread-core-config.h>
 #include <openthread/config.h>
 #include <openthread/random_noncrypto.h>
@@ -93,6 +97,28 @@ enum
 };
 
 // clang-format on
+
+/**
+ * @def OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER
+ *
+ * The default IEEE 802.15.4 maximum transmit power (dBm)
+ * The bare nRF52840 can do 8dBm.  FEM may increase this or
+ * set max input TX power limits.
+ */
+#ifndef OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT
+#define NRF528XX_MAX_BARE_TX_POWER OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT
+#else
+#define NRF528XX_MAX_BARE_TX_POWER (8)
+#endif
+
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN
+#define OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER \
+    (NRF528XX_MAX_BARE_TX_POWER + OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN)
+#else
+#define OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER NRF528XX_MAX_BARE_TX_POWER
+#endif
+#endif
 
 static bool sDisabled;
 
@@ -149,6 +175,53 @@ static uint32_t         sAckFrameCounter;
 static uint8_t          sAckKeyId;
 #endif
 
+#define NRF5_LED_TICKS 50
+
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED) || defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+typedef struct SingleLedState
+{
+    uint8_t mEnabled;
+    uint8_t mDelay;
+} SingleLedState;
+
+static struct RadioLedsState
+{
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED)
+    SingleLedState mRx;
+#endif
+#if defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+    SingleLedState mTx;
+#endif
+} sLeds;
+#endif
+
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED) || defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+static void ledOn(SingleLedState *const aState)
+{
+    aState->mDelay = NRF5_LED_TICKS;
+}
+
+static void ledUpdate(SingleLedState *const aState, uint32_t aPin)
+{
+    if (aState->mEnabled)
+    {
+        aState->mDelay--;
+        if (aState->mDelay == 0)
+        {
+            // LED is now off
+            aState->mEnabled = 0;
+            nrf_gpio_pin_set(aPin);
+        }
+    }
+    else if (aState->mDelay > 0)
+    {
+        // LED is now on
+        aState->mEnabled = 1;
+        nrf_gpio_pin_clear(aPin);
+    }
+}
+#endif
+
 static int8_t GetTransmitPowerForChannel(uint8_t aChannel)
 {
     int8_t channelMaxPower = nrf5GetChannelMaxTransmitPower(aChannel);
@@ -163,6 +236,14 @@ static int8_t GetTransmitPowerForChannel(uint8_t aChannel)
         power = channelMaxPower;
     }
 
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT
+    // Clamp transmit power applied to FEM
+    if (power > OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT)
+    {
+        power = OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT;
+    }
+#endif
+
     return power;
 }
 
@@ -170,7 +251,7 @@ static void dataInit(void)
 {
     sDisabled = true;
 
-    sDefaultTxPower      = OT_RADIO_POWER_INVALID;
+    sDefaultTxPower      = OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER;
     sTransmitFrame.mPsdu = sTransmitPsdu + 1;
 #if OPENTHREAD_CONFIG_MAC_HEADER_IE_SUPPORT
     sTransmitFrame.mInfo.mTxInfo.mIeInfo = &sTransmitIeInfo;
@@ -363,6 +444,15 @@ void nrf5RadioInit(void)
     otLinkMetricsInit(NRF528XX_RECEIVE_SENSITIVITY);
 #endif
     nrf_802154_init();
+
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED)
+    nrf_gpio_pin_dir_set(OPENTHREAD_CONFIG_NRF5_RX_LED, NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_set(OPENTHREAD_CONFIG_NRF5_RX_LED);
+#endif
+#if defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+    nrf_gpio_pin_dir_set(OPENTHREAD_CONFIG_NRF5_TX_LED, NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_set(OPENTHREAD_CONFIG_NRF5_TX_LED);
+#endif
 }
 
 void nrf5RadioDeinit(void)
@@ -565,6 +655,13 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
         setPendingEvent(kPendingEventChannelAccessFailure);
     }
 
+#if defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+    if (error == OT_ERROR_NONE)
+    {
+        ledOn(&sLeds.mTx);
+    }
+#endif
+
     return error;
 }
 
@@ -748,6 +845,12 @@ otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)
     else
     {
         *aPower = nrf_802154_tx_power_get();
+
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN
+        // Add FEM gain
+        *aPower += OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN;
+#endif
+
     }
 
     return error;
@@ -758,6 +861,11 @@ otError otPlatRadioSetTransmitPower(otInstance *aInstance, int8_t aPower)
     OT_UNUSED_VARIABLE(aInstance);
     uint8_t channel = nrf_802154_channel_get();
     otError error   = OT_ERROR_NONE;
+
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN
+    // Subtract FEM gain
+    aPower -= OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN;
+#endif
 
     otEXPECT_ACTION(aPower != OT_RADIO_POWER_INVALID, error = OT_ERROR_INVALID_ARGS);
     sDefaultTxPower = aPower;
@@ -859,6 +967,10 @@ void nrf5RadioProcess(otInstance *aInstance)
     {
         if (sReceivedFrames[i].mPsdu != NULL)
         {
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED)
+            ledOn(&sLeds.mRx);
+#endif
+
 #if OPENTHREAD_CONFIG_DIAG_ENABLE
 
             if (otPlatDiagModeGet())
@@ -990,6 +1102,13 @@ void nrf5RadioProcess(otInstance *aInstance)
     {
         otSysEventSignalPending();
     }
+
+#if defined(OPENTHREAD_CONFIG_NRF5_RX_LED)
+    ledUpdate(&sLeds.mRx, OPENTHREAD_CONFIG_NRF5_RX_LED);
+#endif
+#if defined(OPENTHREAD_CONFIG_NRF5_TX_LED)
+    ledUpdate(&sLeds.mTx, OPENTHREAD_CONFIG_NRF5_TX_LED);
+#endif
 }
 
 void nrf_802154_received_timestamp_raw(uint8_t *p_data, int8_t power, uint8_t lqi, uint32_t time)
