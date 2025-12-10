@@ -98,6 +98,28 @@ enum
 
 // clang-format on
 
+/**
+ * @def OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER
+ *
+ * The default IEEE 802.15.4 maximum transmit power (dBm)
+ * The bare nRF52840 can do 8dBm.  FEM may increase this or
+ * set max input TX power limits.
+ */
+#ifndef OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT
+#define NRF528XX_MAX_BARE_TX_POWER OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT
+#else
+#define NRF528XX_MAX_BARE_TX_POWER (8)
+#endif
+
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN
+#define OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER \
+    (NRF528XX_MAX_BARE_TX_POWER + OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN)
+#else
+#define OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER NRF528XX_MAX_BARE_TX_POWER
+#endif
+#endif
+
 static bool sDisabled;
 
 static otError      sReceiveError = OT_ERROR_NONE;
@@ -214,6 +236,14 @@ static int8_t GetTransmitPowerForChannel(uint8_t aChannel)
         power = channelMaxPower;
     }
 
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT
+    // Clamp transmit power applied to FEM
+    if (power > OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT)
+    {
+        power = OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT;
+    }
+#endif
+
     return power;
 }
 
@@ -221,7 +251,7 @@ static void dataInit(void)
 {
     sDisabled = true;
 
-    sDefaultTxPower      = OT_RADIO_POWER_INVALID;
+    sDefaultTxPower      = OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER;
     sTransmitFrame.mPsdu = sTransmitPsdu + 1;
 #if OPENTHREAD_CONFIG_MAC_HEADER_IE_SUPPORT
     sTransmitFrame.mInfo.mTxInfo.mIeInfo = &sTransmitIeInfo;
@@ -815,6 +845,12 @@ otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)
     else
     {
         *aPower = nrf_802154_tx_power_get();
+
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN
+        // Add FEM gain
+        *aPower += OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN;
+#endif
+
     }
 
     return error;
@@ -825,6 +861,11 @@ otError otPlatRadioSetTransmitPower(otInstance *aInstance, int8_t aPower)
     OT_UNUSED_VARIABLE(aInstance);
     uint8_t channel = nrf_802154_channel_get();
     otError error   = OT_ERROR_NONE;
+
+#ifdef OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN
+    // Subtract FEM gain
+    aPower -= OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN;
+#endif
 
     otEXPECT_ACTION(aPower != OT_RADIO_POWER_INVALID, error = OT_ERROR_INVALID_ARGS);
     sDefaultTxPower = aPower;
