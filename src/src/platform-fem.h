@@ -80,13 +80,22 @@ void nrf5RadioSetChl(bool aState);
 
 /**
  * Define the gain of the front-end module used in dB.
+ *
+ * SKY66112 saturated gain in high-power mode (CHL=1) is ~22 dB.
+ * At the recommended operating point (PIN=-1 dBm), effective gain
+ * is ~20 dB (see datasheet Table 5, Figure 3).
  */
-#define OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN	(16)
+#define OPENTHREAD_CONFIG_NRF5_FEM_TXGAIN	(20)
 
 /**
  * Define the maximum FEM input power in dBm.
+ *
+ * SKY66112 absolute maximum input is +5 dBm (datasheet Table 2),
+ * but the recommended operating point is PIN=-1 dBm for +21 dBm
+ * output (datasheet Table 5).  Exceeding 0 dBm input drives the
+ * PA into deep compression with excessive current draw and heat.
  */
-#define OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT	(5)
+#define OPENTHREAD_CONFIG_NRF5_FEM_MAX_INPUT	(0)
 
 #endif // OPENTHREAD_CONFIG_NRF5_WITH_SKY66112
 
