@@ -44,6 +44,15 @@
 #undef PACKAGE
 
 /**
+ * @def OPENTHREAD_CONFIG_DIAG_ENABLE
+ *
+ * Define as 1 to enable the diagnostic module for factory testing.
+ */
+#ifndef OPENTHREAD_CONFIG_DIAG_ENABLE
+#define OPENTHREAD_CONFIG_DIAG_ENABLE 1
+#endif
+
+/**
  * @def OPENTHREAD_CONFIG_LOG_OUTPUT
  *
  * The nrf52840 platform provides an otPlatLog() function.
